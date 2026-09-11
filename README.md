@@ -36,6 +36,20 @@ Click to download the `.dmg` installer directly:
 
 ---
 
+### ⚠️ macOS Gatekeeper Warning Fix ("App is Damaged")
+
+Because this is an open-source project built without a paid Apple Developer ID Certificate, macOS browser quarantine will flag the downloaded app with *"App is damaged and can't be opened"*.
+
+To bypass this instantly, open **Terminal** and run:
+
+```bash
+xattr -cr /Applications/LidAngleBlur.app
+```
+
+*Or right-click **Lid Angle Blur.app** in Applications and choose **Open**.*
+
+---
+
 ### 🚀 Run as a Background Service (Auto-Start at Boot)
 To run Lid Angle Blur silently in the background whenever you log into your Mac:
 

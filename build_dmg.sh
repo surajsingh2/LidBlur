@@ -29,7 +29,10 @@ cp "/Users/surajsingh/customapps/LidAngleBlurApp/com.lidangleblur.app.plist" "${
 cp "/Users/surajsingh/customapps/LidAngleBlurApp/install_service.sh" "${APP_BUNDLE}/Contents/Resources/"
 cp "/Users/surajsingh/customapps/LidAngleBlurApp/uninstall_service.sh" "${APP_BUNDLE}/Contents/Resources/"
 
-echo "💿 Step 3: Preparing Disk Image Staging Directory..."
+echo "🔏 Step 3: Performing Ad-Hoc Code Signing on App Bundle..."
+codesign -s - --deep --force "${APP_BUNDLE}"
+
+echo "💿 Step 4: Preparing Disk Image Staging Directory..."
 rm -rf "${STAGING_DIR}"
 mkdir -p "${STAGING_DIR}"
 cp -R "${APP_BUNDLE}" "${STAGING_DIR}/"
@@ -37,7 +40,7 @@ cp -R "${APP_BUNDLE}" "${STAGING_DIR}/"
 # Add Applications symlink for drag-and-drop installation
 ln -s /Applications "${STAGING_DIR}/Applications"
 
-echo "💽 Step 4: Creating ${DMG_NAME} using hdiutil..."
+echo "💽 Step 5: Creating ${DMG_NAME} using hdiutil..."
 rm -f "${DMG_PATH}"
 
 hdiutil create -volname "${APP_NAME}" \
