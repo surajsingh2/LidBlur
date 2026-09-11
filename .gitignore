@@ -1,0 +1,15 @@
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Build artifacts
+build/
+*.o
+*.dmg
+*.app
+
+# Logs
+*.log
+*.err
+/tmp/

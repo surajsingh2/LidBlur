@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.lidangleblur.app</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/surajsingh/customapps/LidAngleBlurApp/LidAngleBlurApp</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>ProcessType</key>
+    <string>Interactive</string>
+    <key>StandardOutPath</key>
+    <string>/Users/surajsingh/customapps/LidAngleBlurApp/lidblur.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/surajsingh/customapps/LidAngleBlurApp/lidblur.err</string>
+</dict>
+</plist>
