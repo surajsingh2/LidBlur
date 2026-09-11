@@ -34,24 +34,24 @@ struct ControlPanelView: View {
     @ObservedObject var state: ControlPanelState
     
     var body: some View {
-        VStack(spacing: 14) {
-            // Header with top spacing for macOS Traffic Light buttons
-            HStack(spacing: 12) {
+        VStack(spacing: 18) {
+            // Header with top clearance for macOS Traffic Light buttons
+            HStack(spacing: 14) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .fill(LinearGradient(gradient: Gradient(colors: [.blue, .purple]), startPoint: .topLeading, endPoint: .bottomTrailing))
-                        .frame(width: 44, height: 44)
+                        .frame(width: 48, height: 48)
                     
                     Image(systemName: "laptopcomputer")
-                        .font(.system(size: 22, weight: .bold))
+                        .font(.system(size: 24, weight: .bold))
                         .foregroundColor(.white)
                 }
                 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 3) {
                     Text("Lid Angle Blur")
-                        .font(.system(size: 16, weight: .bold))
+                        .font(.system(size: 17, weight: .bold))
                     Text("Screen Lean Privacy Blur")
-                        .font(.system(size: 11))
+                        .font(.system(size: 12))
                         .foregroundColor(.secondary)
                 }
                 
@@ -69,55 +69,55 @@ struct ControlPanelView: View {
                 .padding(.vertical, 5)
                 .background(Capsule().fill(Color.primary.opacity(0.08)))
             }
-            .padding(.top, 12)
+            .padding(.top, 24)
             
             // Live Telemetry Banner
-            VStack(spacing: 8) {
+            VStack(spacing: 10) {
                 HStack {
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: 3) {
                         Text("LIVE HARDWARE ANGLE")
                             .font(.system(size: 10, weight: .bold))
                             .foregroundColor(.secondary)
                         
                         Text(String(format: "%.1f°", state.currentAngle))
-                            .font(.system(size: 26, weight: .heavy, design: .rounded))
+                            .font(.system(size: 28, weight: .heavy, design: .rounded))
                     }
                     
                     Spacer()
                     
-                    VStack(alignment: .trailing, spacing: 2) {
+                    VStack(alignment: .trailing, spacing: 3) {
                         Text("BLUR COVERAGE")
                             .font(.system(size: 10, weight: .bold))
                             .foregroundColor(.secondary)
                         
                         Text(String(format: "%.0f%%", state.blurProgress * 100))
-                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                            .font(.system(size: 26, weight: .bold, design: .rounded))
                             .foregroundColor(.blue)
                     }
                 }
                 
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
-                        Capsule().fill(Color.primary.opacity(0.12)).frame(height: 7)
+                        Capsule().fill(Color.primary.opacity(0.12)).frame(height: 8)
                         Capsule().fill(LinearGradient(gradient: Gradient(colors: [.blue, .cyan]), startPoint: .leading, endPoint: .trailing))
-                            .frame(width: max(0, geo.size.width * CGFloat(state.blurProgress)), height: 7)
+                            .frame(width: max(0, geo.size.width * CGFloat(state.blurProgress)), height: 8)
                             .animation(.easeOut(duration: 0.1), value: state.blurProgress)
                     }
                 }
-                .frame(height: 7)
+                .frame(height: 8)
             }
-            .padding(12)
-            .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color(NSColor.controlBackgroundColor).opacity(0.7)))
+            .padding(16)
+            .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color(NSColor.controlBackgroundColor).opacity(0.7)))
             
-            // Blur Customization Options
-            VStack(alignment: .leading, spacing: 10) {
+            // Blur Customization Options Card
+            VStack(alignment: .leading, spacing: 14) {
                 Text("BLUR CUSTOMIZATION")
                     .font(.system(size: 10, weight: .bold))
                     .foregroundColor(.secondary)
                 
                 HStack {
                     Text("Glass Material Style:")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.system(size: 13, weight: .medium))
                     Spacer()
                     Picker("", selection: Binding(
                         get: { state.blurMaterialStyle },
@@ -129,12 +129,12 @@ struct ControlPanelView: View {
                         Text("System FullScreen").tag(3)
                     }
                     .pickerStyle(.menu)
-                    .frame(width: 170)
+                    .frame(width: 180)
                 }
                 
                 HStack {
                     Text("Expansion Direction:")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.system(size: 13, weight: .medium))
                     Spacer()
                     Picker("", selection: Binding(
                         get: { state.blurDirection },
@@ -145,16 +145,16 @@ struct ControlPanelView: View {
                         Text("Center Outward").tag(2)
                     }
                     .pickerStyle(.menu)
-                    .frame(width: 170)
+                    .frame(width: 180)
                 }
                 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 6) {
                     HStack {
                         Text("Blur Opacity / Intensity:")
-                            .font(.system(size: 12, weight: .medium))
+                            .font(.system(size: 13, weight: .medium))
                         Spacer()
                         Text(String(format: "%.0f%%", state.blurIntensity * 100))
-                            .font(.system(size: 12, weight: .bold))
+                            .font(.system(size: 13, weight: .bold))
                     }
                     
                     Slider(value: Binding(
@@ -163,11 +163,11 @@ struct ControlPanelView: View {
                     ), in: 0.2...1.0, step: 0.05)
                 }
             }
-            .padding(12)
-            .background(RoundedRectangle(cornerRadius: 10).fill(Color(NSColor.controlBackgroundColor).opacity(0.5)))
+            .padding(16)
+            .background(RoundedRectangle(cornerRadius: 14).fill(Color(NSColor.controlBackgroundColor).opacity(0.5)))
             
-            // Hardware & Threshold Controls
-            VStack(alignment: .leading, spacing: 10) {
+            // Hardware & Threshold Controls Card
+            VStack(alignment: .leading, spacing: 14) {
                 Toggle(isOn: Binding(
                     get: { state.isHardwareEnabled },
                     set: { val in
@@ -179,19 +179,19 @@ struct ControlPanelView: View {
                         Image(systemName: "cpu")
                             .foregroundColor(.blue)
                         Text("Use Hardware Lid Sensor")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(.system(size: 13, weight: .semibold))
                     }
                 }
                 .toggleStyle(SwitchToggleStyle(tint: .blue))
                 
                 if !state.isHardwareEnabled {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 6) {
                         HStack {
                             Text("Manual Test Angle:")
-                                .font(.system(size: 12, weight: .medium))
+                                .font(.system(size: 13, weight: .medium))
                             Spacer()
                             Text(String(format: "%.0f°", state.manualAngle))
-                                .font(.system(size: 12, weight: .bold))
+                                .font(.system(size: 13, weight: .bold))
                         }
                         
                         Slider(value: Binding(
@@ -204,18 +204,18 @@ struct ControlPanelView: View {
                     }
                 }
                 
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 10) {
                     Text("HARDWARE LEAN THRESHOLDS")
                         .font(.system(size: 10, weight: .bold))
                         .foregroundColor(.secondary)
                     
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 6) {
                         HStack {
                             Text("Blur Starts Below:")
-                                .font(.system(size: 12))
+                                .font(.system(size: 13))
                             Spacer()
                             Text(String(format: "%.0f°", state.blurStartAngle))
-                                .font(.system(size: 12, weight: .bold))
+                                .font(.system(size: 13, weight: .bold))
                         }
                         
                         Slider(value: Binding(
@@ -227,13 +227,13 @@ struct ControlPanelView: View {
                         ), in: 30...130, step: 1)
                     }
                     
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 6) {
                         HStack {
                             Text("Blur 100% At:")
-                                .font(.system(size: 12))
+                                .font(.system(size: 13))
                             Spacer()
                             Text(String(format: "%.0f°", state.blurFullAngle))
-                                .font(.system(size: 12, weight: .bold))
+                                .font(.system(size: 13, weight: .bold))
                         }
                         
                         Slider(value: Binding(
@@ -246,17 +246,17 @@ struct ControlPanelView: View {
                     }
                 }
             }
-            .padding(12)
-            .background(RoundedRectangle(cornerRadius: 10).fill(Color(NSColor.controlBackgroundColor).opacity(0.5)))
+            .padding(16)
+            .background(RoundedRectangle(cornerRadius: 14).fill(Color(NSColor.controlBackgroundColor).opacity(0.5)))
             
-            Spacer(minLength: 4)
+            Spacer(minLength: 8)
             
             // Bottom Action Bar
             HStack {
                 Button(action: {
                     PermissionsManager.openSystemSettings()
                 }) {
-                    HStack(spacing: 4) {
+                    HStack(spacing: 6) {
                         Image(systemName: "gearshape")
                         Text("System Settings")
                     }
@@ -276,9 +276,10 @@ struct ControlPanelView: View {
                 .buttonStyle(.borderless)
             }
             .padding(.horizontal, 4)
+            .padding(.bottom, 4)
         }
-        .padding(16)
-        .frame(width: 420, height: 490)
+        .padding(20)
+        .frame(width: 460, height: 580)
     }
 }
 
@@ -306,7 +307,7 @@ public class ControlPanelWindow: NSWindow {
     }
     
     public init() {
-        let panelRect = NSRect(x: 0, y: 0, width: 420, height: 490)
+        let panelRect = NSRect(x: 0, y: 0, width: 460, height: 580)
         super.init(
             contentRect: panelRect,
             styleMask: [.titled, .closable, .fullSizeContentView],
