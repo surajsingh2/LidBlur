@@ -6,7 +6,6 @@
 # Build artifacts
 build/
 *.o
-*.dmg
 *.app
 
 # Logs

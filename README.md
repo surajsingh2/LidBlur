@@ -23,7 +23,7 @@
 ## 📦 Direct Download & Installation
 
 ### Option 1: Download `.dmg` Installer
-1. Download the direct installer: **[`LidAngleBlur.dmg`](LidAngleBlur.dmg)**.
+1. Download the direct installer: **[LidAngleBlur.dmg](https://github.com/surajsingh2/LidBlur/releases)** or **[LidAngleBlur.dmg (Direct)](LidAngleBlur.dmg)**.
 2. Open `LidAngleBlur.dmg` and drag **Lid Angle Blur.app** into your **Applications** folder.
 3. Launch **Lid Angle Blur** from Applications or Spotlight.
 
@@ -56,8 +56,8 @@ On first launch, macOS requires standard Accessibility permission to allow the b
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/LidAngleBlurApp.git
-cd LidAngleBlurApp
+git clone https://github.com/surajsingh2/LidBlur.git
+cd LidBlur
 
 # Build native .app bundle and .dmg installer
 ./build_dmg.sh
