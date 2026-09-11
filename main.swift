@@ -12,6 +12,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var blurFullAngle = 20.0
     private var currentAngle = 112.0
     
+    private var blurMaterialStyle = 0
+    private var blurDirection = 0
+    private var skewTransformMode = 0
+    private var skewPivotPoint = 0
+    
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Request macOS System Permissions if needed
         PermissionsManager.checkAndRequestPermissions()
@@ -40,6 +45,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         controlPanel.onSkewSettingsChanged = { [weak self] enabled, intensity in
             self?.isSkewEnabled = enabled
             self?.skewIntensity = intensity
+            self?.recalculateProgress()
+        }
+        
+        controlPanel.onAnimationStylesChanged = { [weak self] mat, dir, mode, pivot in
+            self?.blurMaterialStyle = mat
+            self?.blurDirection = dir
+            self?.skewTransformMode = mode
+            self?.skewPivotPoint = pivot
             self?.recalculateProgress()
         }
         
@@ -76,7 +89,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let progress = (blurStartAngle - currentAngle) / span
         let clampedProgress = CGFloat(max(0.0, min(1.0, progress)))
         
-        overlayWindow.setBlurAndSkewProgress(clampedProgress, skewIntensity: CGFloat(skewIntensity), isSkewEnabled: isSkewEnabled)
+        overlayWindow.setBlurAndSkewProgress(
+            clampedProgress,
+            skewIntensity: CGFloat(skewIntensity),
+            isSkewEnabled: isSkewEnabled,
+            blurMaterialStyle: blurMaterialStyle,
+            blurDirection: blurDirection,
+            skewTransformMode: skewTransformMode,
+            skewPivotPoint: skewPivotPoint
+        )
         controlPanel.updateTelemetry(angle: currentAngle, progress: Double(clampedProgress))
     }
     
