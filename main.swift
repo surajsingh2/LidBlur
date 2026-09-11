@@ -6,9 +6,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     
     private var isHardwareEnabled = true
-    private var isSkewEnabled = true
-    private var skewIntensity = 1.0
-    private var blurStartAngle = 115.0 // Starts blurring as soon as screen starts tilting down from 112°
+    private var blurStartAngle = 115.0 // Starts blurring as soon as screen tilts down from ~112°
     private var blurFullAngle = 30.0   // 100% blur at 30°
     private var currentAngle = 112.0
     
@@ -35,12 +33,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             if !enabled {
                 self?.recalculateProgress()
             }
-        }
-        
-        controlPanel.onSkewSettingsChanged = { [weak self] enabled, intensity in
-            self?.isSkewEnabled = enabled
-            self?.skewIntensity = intensity
-            self?.recalculateProgress()
         }
         
         controlPanel.onAnimationStylesChanged = { [weak self] in
@@ -80,16 +72,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let progress = (blurStartAngle - currentAngle) / span
         let clampedProgress = CGFloat(max(0.0, min(1.0, progress)))
         
-        overlayWindow.setBlurAndSkewProgress(
+        overlayWindow.setBlurProgress(
             clampedProgress,
-            skewIntensity: CGFloat(controlPanel.skewIntensity),
-            skewAngleMax: CGFloat(controlPanel.skewAngleMax),
             blurIntensity: CGFloat(controlPanel.blurIntensity),
-            isSkewEnabled: controlPanel.isSkewEnabled,
             blurMaterialStyle: controlPanel.blurMaterialStyle,
-            blurDirection: controlPanel.blurDirection,
-            skewTransformMode: controlPanel.skewTransformMode,
-            skewPivotPoint: controlPanel.skewPivotPoint
+            blurDirection: controlPanel.blurDirection
         )
         controlPanel.updateTelemetry(angle: currentAngle, progress: Double(clampedProgress))
     }
