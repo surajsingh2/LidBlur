@@ -35,7 +35,7 @@ struct ControlPanelView: View {
     
     var body: some View {
         VStack(spacing: 14) {
-            // Header
+            // Header with top spacing for macOS Traffic Light buttons
             HStack(spacing: 12) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -69,6 +69,7 @@ struct ControlPanelView: View {
                 .padding(.vertical, 5)
                 .background(Capsule().fill(Color.primary.opacity(0.08)))
             }
+            .padding(.top, 12)
             
             // Live Telemetry Banner
             VStack(spacing: 8) {
@@ -277,7 +278,7 @@ struct ControlPanelView: View {
             .padding(.horizontal, 4)
         }
         .padding(16)
-        .frame(width: 420, height: 480)
+        .frame(width: 420, height: 490)
     }
 }
 
@@ -305,7 +306,7 @@ public class ControlPanelWindow: NSWindow {
     }
     
     public init() {
-        let panelRect = NSRect(x: 0, y: 0, width: 420, height: 480)
+        let panelRect = NSRect(x: 0, y: 0, width: 420, height: 490)
         super.init(
             contentRect: panelRect,
             styleMask: [.titled, .closable, .fullSizeContentView],
