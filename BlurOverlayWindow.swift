@@ -2,11 +2,15 @@ import Cocoa
 import QuartzCore
 
 public class BlurOverlayWindow: NSWindow {
+    private let containerView = NSView()
     private let visualEffectView = NSVisualEffectView()
-    private let maskLayer = CAGradientLayer()
+    private var screenWidth: CGFloat = 1440
+    private var screenHeight: CGFloat = 900
     
     public init() {
         let screenFrame = NSScreen.main?.frame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
+        self.screenWidth = screenFrame.width
+        self.screenHeight = screenFrame.height
         
         super.init(
             contentRect: screenFrame,
@@ -15,51 +19,30 @@ public class BlurOverlayWindow: NSWindow {
             defer: false
         )
         
-        self.level = .screenSaver
+        self.level = NSWindow.Level(Int(CGWindowLevelForKey(.screenSaverWindow)))
         self.isOpaque = false
         self.backgroundColor = .clear
         self.ignoresMouseEvents = true
         self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         self.hasShadow = false
         
-        setupBlurView(frame: NSRect(origin: .zero, size: screenFrame.size))
+        setupViews(frame: screenFrame)
     }
     
-    private func setupBlurView(frame: NSRect) {
-        let containerView = NSView(frame: frame)
+    private func setupViews(frame: NSRect) {
+        containerView.frame = frame
         containerView.wantsLayer = true
         self.contentView = containerView
         
-        visualEffectView.frame = frame
-        visualEffectView.autoresizingMask = [.width, .height]
+        visualEffectView.frame = .zero
         visualEffectView.material = .hudWindow
         visualEffectView.blendingMode = .behindWindow
         visualEffectView.state = .active
         visualEffectView.wantsLayer = true
         
         containerView.addSubview(visualEffectView)
-        
-        if let layer = visualEffectView.layer {
-            layer.anchorPoint = CGPoint(x: 0.5, y: 1.0)
-            layer.frame = frame
-        }
-        
-        maskLayer.frame = visualEffectView.bounds
-        maskLayer.colors = [
-            NSColor.black.cgColor,
-            NSColor.black.cgColor,
-            NSColor.clear.cgColor,
-            NSColor.clear.cgColor
-        ]
-        
-        maskLayer.startPoint = CGPoint(x: 0.5, y: 1.0)
-        maskLayer.endPoint = CGPoint(x: 0.5, y: 0.0)
-        maskLayer.locations = [0.0, 0.0, 0.0, 1.0]
-        
-        visualEffectView.layer?.mask = maskLayer
     }
     
-    /// Apply configurable blur material, direction, intensity, max skew angle, transform mode, and pivot
     public func setBlurAndSkewProgress(
         _ progress: CGFloat,
         skewIntensity: CGFloat = 1.0,
@@ -76,7 +59,7 @@ public class BlurOverlayWindow: NSWindow {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         
-        // 1. Update Material Style & Alpha Intensity
+        // 1. Update Material Style
         switch blurMaterialStyle {
         case 1: visualEffectView.material = .underWindowBackground
         case 2: visualEffectView.material = .popover
@@ -86,39 +69,31 @@ public class BlurOverlayWindow: NSWindow {
         
         visualEffectView.alphaValue = blurIntensity
         
-        // 2. Update Blur Gradient Mask Direction
-        switch blurDirection {
-        case 1: // Bottom-to-Top
-            maskLayer.startPoint = CGPoint(x: 0.5, y: 0.0)
-            maskLayer.endPoint = CGPoint(x: 0.5, y: 1.0)
-        case 2: // Center Outward
-            maskLayer.startPoint = CGPoint(x: 0.5, y: 0.5)
-            maskLayer.endPoint = CGPoint(x: 0.5, y: 1.0)
-        default: // Top-to-Bottom
-            maskLayer.startPoint = CGPoint(x: 0.5, y: 1.0)
-            maskLayer.endPoint = CGPoint(x: 0.5, y: 0.0)
-        }
-        
+        // 2. Top-to-Bottom Frame Height Clipping (Guarantees hardware backdrop blur works on all MacBooks!)
         if p <= 0.001 {
-            maskLayer.locations = [0.0, 0.0, 0.0, 1.0]
-        } else if p >= 0.999 {
-            maskLayer.locations = [0.0, 1.0, 1.0, 1.0]
+            visualEffectView.frame = .zero
+            visualEffectView.isHidden = true
         } else {
-            let softStart = max(0.0, p - 0.08)
-            let softEnd = min(1.0, p + 0.02)
-            maskLayer.locations = [
-                0.0 as NSNumber,
-                softStart as NSNumber,
-                softEnd as NSNumber,
-                1.0 as NSNumber
-            ]
+            visualEffectView.isHidden = false
+            switch blurDirection {
+            case 1: // Bottom-to-Top
+                let h = screenHeight * p
+                visualEffectView.frame = NSRect(x: 0, y: 0, width: screenWidth, height: h)
+            case 2: // Center Outward
+                let h = screenHeight * p
+                let w = screenWidth * p
+                visualEffectView.frame = NSRect(x: (screenWidth - w) / 2, y: (screenHeight - h) / 2, width: w, height: h)
+            default: // Top-to-Bottom (Default)
+                let h = screenHeight * p
+                visualEffectView.frame = NSRect(x: 0, y: screenHeight - h, width: screenWidth, height: h)
+            }
         }
         
-        // 3. Update Pivot Point & 3D Skew
+        // 3. 3D Perspective Skew Transform
         if let layer = visualEffectView.layer {
             switch skewPivotPoint {
             case 1: layer.anchorPoint = CGPoint(x: 0.5, y: 0.5) // Center
-            case 2: layer.anchorPoint = CGPoint(x: 0.5, y: 0.0) // Bottom Edge
+            case 2: layer.anchorPoint = CGPoint(x: 0.5, y: 0.0) // Bottom
             default: layer.anchorPoint = CGPoint(x: 0.5, y: 1.0) // Top Hinge
             }
             
@@ -126,22 +101,22 @@ public class BlurOverlayWindow: NSWindow {
                 layer.transform = CATransform3DIdentity
             } else {
                 var transform = CATransform3DIdentity
-                transform.m34 = -1.0 / 750.0
+                transform.m34 = -1.0 / 650.0 // True 3D depth perspective projection
                 
                 let rotationRadians = (p * skewAngleMax * skewIntensity) * .pi / 180.0
                 
                 switch skewTransformMode {
-                case 1: // Trapezoid Pinch & Scale
+                case 1: // Trapezoid Pinch
                     transform = CATransform3DRotate(transform, rotationRadians, 1.0, 0.0, 0.0)
                     let scaleX = 1.0 - (p * 0.12 * skewIntensity)
-                    let scaleY = 1.0 - (p * 0.08 * skewIntensity)
+                    let scaleY = 1.0 - (p * 0.06 * skewIntensity)
                     transform = CATransform3DScale(transform, scaleX, scaleY, 1.0)
                     
-                case 2: // Depth Zoom & Recede
+                case 2: // Depth Recede
                     transform = CATransform3DRotate(transform, rotationRadians * 0.8, 1.0, 0.0, 0.0)
-                    let translateZ = -p * 150.0 * skewIntensity
+                    let translateZ = -p * 180.0 * skewIntensity
                     transform = CATransform3DTranslate(transform, 0, 0, translateZ)
-                    let scaleFactor = 1.0 - (p * 0.1 * skewIntensity)
+                    let scaleFactor = 1.0 - (p * 0.08 * skewIntensity)
                     transform = CATransform3DScale(transform, scaleFactor, scaleFactor, 1.0)
                     
                 default: // 3D Hinge Pitch Tilt (Default)

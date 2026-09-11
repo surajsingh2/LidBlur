@@ -8,8 +8,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var isHardwareEnabled = true
     private var isSkewEnabled = true
     private var skewIntensity = 1.0
-    private var blurStartAngle = 90.0
-    private var blurFullAngle = 20.0
+    private var blurStartAngle = 115.0 // Starts blurring as soon as screen starts tilting down from 112°
+    private var blurFullAngle = 30.0   // 100% blur at 30°
     private var currentAngle = 112.0
     
     func applicationDidFinishLaunching(_ notification: Notification) {
