@@ -4,6 +4,8 @@ import QuartzCore
 public class BlurOverlayWindow: NSWindow {
     private let containerView = NSView()
     private let visualEffectView = NSVisualEffectView()
+    private let maskLayer = CAGradientLayer()
+    
     private var screenWidth: CGFloat = 1440
     private var screenHeight: CGFloat = 900
     
@@ -34,13 +36,38 @@ public class BlurOverlayWindow: NSWindow {
         containerView.wantsLayer = true
         self.contentView = containerView
         
-        visualEffectView.frame = .zero
+        // Full screen visual effect view
+        visualEffectView.frame = frame
+        visualEffectView.autoresizingMask = [.width, .height]
         visualEffectView.material = .hudWindow
         visualEffectView.blendingMode = .behindWindow
         visualEffectView.state = .active
         visualEffectView.wantsLayer = true
         
         containerView.addSubview(visualEffectView)
+        
+        // Lock layer anchor point and position to top center of screen
+        if let layer = visualEffectView.layer {
+            layer.bounds = CGRect(x: 0, y: 0, width: screenWidth, height: screenHeight)
+            layer.anchorPoint = CGPoint(x: 0.5, y: 1.0)
+            layer.position = CGPoint(x: screenWidth / 2.0, y: screenHeight)
+        }
+        
+        // Setup top-to-bottom gradient mask
+        maskLayer.frame = CGRect(x: 0, y: 0, width: screenWidth, height: screenHeight)
+        maskLayer.colors = [
+            NSColor.black.cgColor,
+            NSColor.black.cgColor,
+            NSColor.clear.cgColor,
+            NSColor.clear.cgColor
+        ]
+        
+        // In macOS CALayer, y = 1.0 is TOP, y = 0.0 is BOTTOM
+        maskLayer.startPoint = CGPoint(x: 0.5, y: 1.0) // Top of screen
+        maskLayer.endPoint = CGPoint(x: 0.5, y: 0.0)   // Bottom of screen
+        maskLayer.locations = [0.0, 0.0, 0.0, 1.0]
+        
+        visualEffectView.layer?.mask = maskLayer
     }
     
     public func setBlurAndSkewProgress(
@@ -59,7 +86,7 @@ public class BlurOverlayWindow: NSWindow {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         
-        // 1. Update Material Style
+        // 1. Update Material Style & Alpha
         switch blurMaterialStyle {
         case 1: visualEffectView.material = .underWindowBackground
         case 2: visualEffectView.material = .popover
@@ -69,60 +96,77 @@ public class BlurOverlayWindow: NSWindow {
         
         visualEffectView.alphaValue = blurIntensity
         
-        // 2. Top-to-Bottom Frame Height Clipping (Guarantees hardware backdrop blur works on all MacBooks!)
-        if p <= 0.001 {
-            visualEffectView.frame = .zero
-            visualEffectView.isHidden = true
-        } else {
-            visualEffectView.isHidden = false
-            switch blurDirection {
-            case 1: // Bottom-to-Top
-                let h = screenHeight * p
-                visualEffectView.frame = NSRect(x: 0, y: 0, width: screenWidth, height: h)
-            case 2: // Center Outward
-                let h = screenHeight * p
-                let w = screenWidth * p
-                visualEffectView.frame = NSRect(x: (screenWidth - w) / 2, y: (screenHeight - h) / 2, width: w, height: h)
-            default: // Top-to-Bottom (Default)
-                let h = screenHeight * p
-                visualEffectView.frame = NSRect(x: 0, y: screenHeight - h, width: screenWidth, height: h)
-            }
+        // 2. Update Blur Expansion Direction via Gradient Mask
+        switch blurDirection {
+        case 1: // Bottom-to-Top
+            maskLayer.startPoint = CGPoint(x: 0.5, y: 0.0)
+            maskLayer.endPoint = CGPoint(x: 0.5, y: 1.0)
+        case 2: // Center Outward
+            maskLayer.startPoint = CGPoint(x: 0.5, y: 0.5)
+            maskLayer.endPoint = CGPoint(x: 0.5, y: 1.0)
+        default: // Top-to-Bottom
+            maskLayer.startPoint = CGPoint(x: 0.5, y: 1.0)
+            maskLayer.endPoint = CGPoint(x: 0.5, y: 0.0)
         }
         
-        // 3. 3D Perspective Skew Transform
+        if p <= 0.001 {
+            maskLayer.locations = [0.0, 0.0, 0.0, 1.0]
+            visualEffectView.isHidden = true
+        } else if p >= 0.999 {
+            maskLayer.locations = [0.0, 1.0, 1.0, 1.0]
+            visualEffectView.isHidden = false
+        } else {
+            visualEffectView.isHidden = false
+            let softStart = max(0.0, p - 0.08)
+            let softEnd = min(1.0, p + 0.02)
+            maskLayer.locations = [
+                0.0 as NSNumber,
+                softStart as NSNumber,
+                softEnd as NSNumber,
+                1.0 as NSNumber
+            ]
+        }
+        
+        // 3. Update Anchor Point, Position, and 3D Skew Transform
         if let layer = visualEffectView.layer {
             switch skewPivotPoint {
-            case 1: layer.anchorPoint = CGPoint(x: 0.5, y: 0.5) // Center
-            case 2: layer.anchorPoint = CGPoint(x: 0.5, y: 0.0) // Bottom
-            default: layer.anchorPoint = CGPoint(x: 0.5, y: 1.0) // Top Hinge
+            case 1: // Center Pivot
+                layer.anchorPoint = CGPoint(x: 0.5, y: 0.5)
+                layer.position = CGPoint(x: screenWidth / 2.0, y: screenHeight / 2.0)
+            case 2: // Bottom Edge Pivot
+                layer.anchorPoint = CGPoint(x: 0.5, y: 0.0)
+                layer.position = CGPoint(x: screenWidth / 2.0, y: 0)
+            default: // Top Hinge Pivot (Default)
+                layer.anchorPoint = CGPoint(x: 0.5, y: 1.0)
+                layer.position = CGPoint(x: screenWidth / 2.0, y: screenHeight)
             }
             
             if !isSkewEnabled || p <= 0.001 {
                 layer.transform = CATransform3DIdentity
             } else {
                 var transform = CATransform3DIdentity
-                transform.m34 = -1.0 / 650.0 // True 3D depth perspective projection
+                transform.m34 = -1.0 / 650.0 // True 3D perspective projection depth
                 
                 let rotationRadians = (p * skewAngleMax * skewIntensity) * .pi / 180.0
                 
                 switch skewTransformMode {
                 case 1: // Trapezoid Pinch
                     transform = CATransform3DRotate(transform, rotationRadians, 1.0, 0.0, 0.0)
-                    let scaleX = 1.0 - (p * 0.12 * skewIntensity)
-                    let scaleY = 1.0 - (p * 0.06 * skewIntensity)
+                    let scaleX = 1.0 - (p * 0.1 * skewIntensity)
+                    let scaleY = 1.0 - (p * 0.05 * skewIntensity)
                     transform = CATransform3DScale(transform, scaleX, scaleY, 1.0)
                     
                 case 2: // Depth Recede
                     transform = CATransform3DRotate(transform, rotationRadians * 0.8, 1.0, 0.0, 0.0)
-                    let translateZ = -p * 180.0 * skewIntensity
+                    let translateZ = -p * 150.0 * skewIntensity
                     transform = CATransform3DTranslate(transform, 0, 0, translateZ)
                     let scaleFactor = 1.0 - (p * 0.08 * skewIntensity)
                     transform = CATransform3DScale(transform, scaleFactor, scaleFactor, 1.0)
                     
                 default: // 3D Hinge Pitch Tilt (Default)
                     transform = CATransform3DRotate(transform, rotationRadians, 1.0, 0.0, 0.0)
-                    let scaleY = 1.0 - (p * 0.05 * skewIntensity)
-                    let scaleX = 1.0 - (p * 0.02 * skewIntensity)
+                    let scaleY = 1.0 - (p * 0.04 * skewIntensity)
+                    let scaleX = 1.0 - (p * 0.01 * skewIntensity)
                     transform = CATransform3DScale(transform, scaleX, scaleY, 1.0)
                 }
                 
