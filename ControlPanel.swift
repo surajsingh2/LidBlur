@@ -35,7 +35,7 @@ struct ControlPanelView: View {
     
     var body: some View {
         VStack(spacing: 18) {
-            // Header with top clearance for macOS Traffic Light buttons
+            // Header with top clearance below macOS Traffic Light close/minimize buttons
             HStack(spacing: 14) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -69,7 +69,7 @@ struct ControlPanelView: View {
                 .padding(.vertical, 5)
                 .background(Capsule().fill(Color.primary.opacity(0.08)))
             }
-            .padding(.top, 24)
+            .padding(.top, 38) // Clears window traffic light buttons completely
             
             // Live Telemetry Banner
             VStack(spacing: 10) {
@@ -279,7 +279,7 @@ struct ControlPanelView: View {
             .padding(.bottom, 4)
         }
         .padding(20)
-        .frame(width: 460, height: 580)
+        .frame(width: 460, height: 600)
     }
 }
 
@@ -307,7 +307,7 @@ public class ControlPanelWindow: NSWindow {
     }
     
     public init() {
-        let panelRect = NSRect(x: 0, y: 0, width: 460, height: 580)
+        let panelRect = NSRect(x: 0, y: 0, width: 460, height: 600)
         super.init(
             contentRect: panelRect,
             styleMask: [.titled, .closable, .fullSizeContentView],
