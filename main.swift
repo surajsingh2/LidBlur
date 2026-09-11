@@ -12,11 +12,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var blurFullAngle = 20.0
     private var currentAngle = 112.0
     
-    private var blurMaterialStyle = 0
-    private var blurDirection = 0
-    private var skewTransformMode = 0
-    private var skewPivotPoint = 0
-    
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Request macOS System Permissions if needed
         PermissionsManager.checkAndRequestPermissions()
@@ -48,11 +43,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             self?.recalculateProgress()
         }
         
-        controlPanel.onAnimationStylesChanged = { [weak self] mat, dir, mode, pivot in
-            self?.blurMaterialStyle = mat
-            self?.blurDirection = dir
-            self?.skewTransformMode = mode
-            self?.skewPivotPoint = pivot
+        controlPanel.onAnimationStylesChanged = { [weak self] in
             self?.recalculateProgress()
         }
         
@@ -91,12 +82,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         overlayWindow.setBlurAndSkewProgress(
             clampedProgress,
-            skewIntensity: CGFloat(skewIntensity),
-            isSkewEnabled: isSkewEnabled,
-            blurMaterialStyle: blurMaterialStyle,
-            blurDirection: blurDirection,
-            skewTransformMode: skewTransformMode,
-            skewPivotPoint: skewPivotPoint
+            skewIntensity: CGFloat(controlPanel.skewIntensity),
+            skewAngleMax: CGFloat(controlPanel.skewAngleMax),
+            blurIntensity: CGFloat(controlPanel.blurIntensity),
+            isSkewEnabled: controlPanel.isSkewEnabled,
+            blurMaterialStyle: controlPanel.blurMaterialStyle,
+            blurDirection: controlPanel.blurDirection,
+            skewTransformMode: controlPanel.skewTransformMode,
+            skewPivotPoint: controlPanel.skewPivotPoint
         )
         controlPanel.updateTelemetry(angle: currentAngle, progress: Double(clampedProgress))
     }

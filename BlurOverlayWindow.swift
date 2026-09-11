@@ -52,17 +52,19 @@ public class BlurOverlayWindow: NSWindow {
             NSColor.clear.cgColor
         ]
         
-        maskLayer.startPoint = CGPoint(x: 0.5, y: 1.0) // Top
-        maskLayer.endPoint = CGPoint(x: 0.5, y: 0.0)   // Bottom
+        maskLayer.startPoint = CGPoint(x: 0.5, y: 1.0)
+        maskLayer.endPoint = CGPoint(x: 0.5, y: 0.0)
         maskLayer.locations = [0.0, 0.0, 0.0, 1.0]
         
         visualEffectView.layer?.mask = maskLayer
     }
     
-    /// Apply configurable blur material, direction, transform mode, and pivot
+    /// Apply configurable blur material, direction, intensity, max skew angle, transform mode, and pivot
     public func setBlurAndSkewProgress(
         _ progress: CGFloat,
         skewIntensity: CGFloat = 1.0,
+        skewAngleMax: CGFloat = 24.0,
+        blurIntensity: CGFloat = 1.0,
         isSkewEnabled: Bool = true,
         blurMaterialStyle: Int = 0,
         blurDirection: Int = 0,
@@ -74,13 +76,15 @@ public class BlurOverlayWindow: NSWindow {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         
-        // 1. Update Material Style
+        // 1. Update Material Style & Alpha Intensity
         switch blurMaterialStyle {
         case 1: visualEffectView.material = .underWindowBackground
         case 2: visualEffectView.material = .popover
         case 3: visualEffectView.material = .fullScreenUI
         default: visualEffectView.material = .hudWindow
         }
+        
+        visualEffectView.alphaValue = blurIntensity
         
         // 2. Update Blur Gradient Mask Direction
         switch blurDirection {
@@ -110,7 +114,7 @@ public class BlurOverlayWindow: NSWindow {
             ]
         }
         
-        // 3. Update Pivot Point
+        // 3. Update Pivot Point & 3D Skew
         if let layer = visualEffectView.layer {
             switch skewPivotPoint {
             case 1: layer.anchorPoint = CGPoint(x: 0.5, y: 0.5) // Center
@@ -124,8 +128,7 @@ public class BlurOverlayWindow: NSWindow {
                 var transform = CATransform3DIdentity
                 transform.m34 = -1.0 / 750.0
                 
-                let maxRotationDegrees: CGFloat = 24.0 * skewIntensity
-                let rotationRadians = (p * maxRotationDegrees) * .pi / 180.0
+                let rotationRadians = (p * skewAngleMax * skewIntensity) * .pi / 180.0
                 
                 switch skewTransformMode {
                 case 1: // Trapezoid Pinch & Scale

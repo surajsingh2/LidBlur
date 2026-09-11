@@ -2,32 +2,40 @@ import Cocoa
 import SwiftUI
 
 public class ControlPanelState: ObservableObject {
+    @Published public var selectedTab: Int = 0
+    
+    // Telemetry & Hardware
     @Published public var currentAngle: Double = 112.0
     @Published public var blurProgress: Double = 0.0
     @Published public var sensorStatus: String = "Connecting..."
     @Published public var isHardwareConnected: Bool = true
     @Published public var isHardwareEnabled: Bool = true
-    @Published public var isSkewEnabled: Bool = true
-    @Published public var skewIntensity: Double = 1.0
     @Published public var manualAngle: Double = 112.0
     @Published public var blurStartAngle: Double = 90.0
     @Published public var blurFullAngle: Double = 20.0
-    @Published public var isPermissionGranted: Bool = true
     
-    // New Animation Customizations
+    // Blur Options
     @Published public var blurMaterialStyle: Int = 0
     @Published public var blurDirection: Int = 0
+    @Published public var blurIntensity: Double = 1.0
+    
+    // 3D Skew Options
+    @Published public var isSkewEnabled: Bool = true
+    @Published public var skewIntensity: Double = 1.0
+    @Published public var skewAngleMax: Double = 24.0
+    @Published public var skewDepthDistance: Double = 150.0
     @Published public var skewTransformMode: Int = 0
     @Published public var skewPivotPoint: Int = 0
     
+    // Callbacks
     public var onHardwareToggleChanged: ((Bool) -> Void)?
     public var onManualAngleChanged: ((Double) -> Void)?
     public var onThresholdsChanged: ((Double, Double) -> Void)?
     public var onSkewSettingsChanged: ((Bool, Double) -> Void)?
-    public var onAnimationStylesChanged: ((Int, Int, Int, Int) -> Void)?
+    public var onAnimationStylesChanged: (() -> Void)?
     
-    public func notifyAnimationStylesChanged() {
-        onAnimationStylesChanged?(blurMaterialStyle, blurDirection, skewTransformMode, skewPivotPoint)
+    public func notifyChanges() {
+        onAnimationStylesChanged?()
     }
 }
 
@@ -35,110 +43,102 @@ struct ControlPanelView: View {
     @ObservedObject var state: ControlPanelState
     
     var body: some View {
-        ScrollView(.vertical, showsIndicators: true) {
-            VStack(spacing: 14) {
-                // Header
-                HStack(spacing: 12) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(LinearGradient(gradient: Gradient(colors: [.blue, .purple]), startPoint: .topLeading, endPoint: .bottomTrailing))
-                            .frame(width: 42, height: 42)
-                        
-                        Image(systemName: "laptopcomputer")
-                            .font(.system(size: 22, weight: .bold))
-                            .foregroundColor(.white)
-                    }
+        VStack(spacing: 12) {
+            // Header
+            HStack(spacing: 10) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(LinearGradient(gradient: Gradient(colors: [.blue, .purple]), startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .frame(width: 38, height: 38)
                     
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Lid Angle Blur")
-                            .font(.system(size: 16, weight: .bold))
-                        Text("Screen Lean Privacy & 3D Skew")
-                            .font(.system(size: 11))
+                    Image(systemName: "laptopcomputer")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(.white)
+                }
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Lid Angle Blur")
+                        .font(.system(size: 15, weight: .bold))
+                    Text("Screen Lean Privacy & 3D Skew")
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(state.isHardwareConnected ? Color.green : Color.orange)
+                        .frame(width: 8, height: 8)
+                    Text(state.isHardwareConnected ? "Hardware" : "Mock")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.secondary)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Capsule().fill(Color.primary.opacity(0.06)))
+            }
+            
+            // Live Telemetry Banner
+            VStack(spacing: 6) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("LIVE ANGLE")
+                            .font(.system(size: 9, weight: .bold))
                             .foregroundColor(.secondary)
+                        
+                        Text(String(format: "%.1f°", state.currentAngle))
+                            .font(.system(size: 22, weight: .heavy, design: .rounded))
                     }
                     
                     Spacer()
                     
-                    HStack(spacing: 6) {
-                        Circle()
-                            .fill(state.isHardwareConnected ? Color.green : Color.orange)
-                            .frame(width: 8, height: 8)
-                        Text(state.isHardwareConnected ? "Sensor Active" : "Mock Mode")
-                            .font(.system(size: 11, weight: .medium))
+                    VStack(alignment: .trailing, spacing: 1) {
+                        Text("BLUR & SKEW")
+                            .font(.system(size: 9, weight: .bold))
                             .foregroundColor(.secondary)
+                        
+                        Text(String(format: "%.0f%%", state.blurProgress * 100))
+                            .font(.system(size: 20, weight: .bold, design: .rounded))
+                            .foregroundColor(.blue)
                     }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Capsule().fill(Color.primary.opacity(0.06)))
                 }
                 
-                Divider()
-                
-                // Real-Time Telemetry Card
-                VStack(spacing: 10) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("LIVE HARDWARE ANGLE")
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundColor(.secondary)
-                            
-                            HStack(alignment: .firstTextBaseline, spacing: 2) {
-                                Text(String(format: "%.1f", state.currentAngle))
-                                    .font(.system(size: 28, weight: .heavy, design: .rounded))
-                                Text("°")
-                                    .font(.system(size: 18, weight: .bold))
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        
-                        Spacer()
-                        
-                        VStack(alignment: .trailing, spacing: 2) {
-                            Text("BLUR & 3D SKEW")
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundColor(.secondary)
-                            
-                            Text(String(format: "%.0f%%", state.blurProgress * 100))
-                                .font(.system(size: 24, weight: .bold, design: .rounded))
-                                .foregroundColor(.blue)
-                        }
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Color.primary.opacity(0.1)).frame(height: 6)
+                        Capsule().fill(LinearGradient(gradient: Gradient(colors: [.blue, .cyan]), startPoint: .leading, endPoint: .trailing))
+                            .frame(width: geo.size.width * CGFloat(state.blurProgress), height: 6)
+                            .animation(.easeOut(duration: 0.1), value: state.blurProgress)
                     }
-                    
-                    // Animated Progress Bar
-                    GeometryReader { geo in
-                        ZStack(alignment: .leading) {
-                            Capsule()
-                                .fill(Color.primary.opacity(0.1))
-                                .frame(height: 7)
-                            
-                            Capsule()
-                                .fill(LinearGradient(gradient: Gradient(colors: [.blue, .cyan]), startPoint: .leading, endPoint: .trailing))
-                                .frame(width: geo.size.width * CGFloat(state.blurProgress), height: 7)
-                                .animation(.easeOut(duration: 0.15), value: state.blurProgress)
-                        }
-                    }
-                    .frame(height: 7)
                 }
-                .padding(12)
-                .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color(NSColor.controlBackgroundColor).opacity(0.7)))
-                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Color.primary.opacity(0.08), lineWidth: 1))
-                
-                // Blur Style Customizations
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("BLUR ANIMATION CUSTOMIZATION")
+                .frame(height: 6)
+            }
+            .padding(10)
+            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color(NSColor.controlBackgroundColor).opacity(0.7)))
+            
+            // Tab Selector (Blur / 3D Skew / Sensor)
+            Picker("", selection: $state.selectedTab) {
+                Text("💧 Blur").tag(0)
+                Text("📐 3D Skew").tag(1)
+                Text("⚙️ Sensor").tag(2)
+            }
+            .pickerStyle(.segmented)
+            
+            // Tab 0: Blur Options
+            if state.selectedTab == 0 {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("BLUR MATERIAL & DIRECTION")
                         .font(.system(size: 10, weight: .bold))
                         .foregroundColor(.secondary)
                     
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Blur Material Glass Style:")
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Glass Material Style:")
                             .font(.system(size: 11, weight: .medium))
                         
                         Picker("", selection: Binding(
                             get: { state.blurMaterialStyle },
-                            set: { val in
-                                state.blurMaterialStyle = val
-                                state.notifyAnimationStylesChanged()
-                            }
+                            set: { val in state.blurMaterialStyle = val; state.notifyChanges() }
                         )) {
                             Text("HUD Dark Glass").tag(0)
                             Text("Ultra Dark").tag(1)
@@ -146,16 +146,15 @@ struct ControlPanelView: View {
                             Text("System FullScreen").tag(3)
                         }
                         .pickerStyle(.segmented)
-                        
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 6) {
                         Text("Blur Expansion Direction:")
                             .font(.system(size: 11, weight: .medium))
                         
                         Picker("", selection: Binding(
                             get: { state.blurDirection },
-                            set: { val in
-                                state.blurDirection = val
-                                state.notifyAnimationStylesChanged()
-                            }
+                            set: { val in state.blurDirection = val; state.notifyChanges() }
                         )) {
                             Text("Top ↓ Down").tag(0)
                             Text("Bottom ↑ Up").tag(1)
@@ -163,12 +162,29 @@ struct ControlPanelView: View {
                         }
                         .pickerStyle(.segmented)
                     }
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("Blur Opacity / Intensity:")
+                                .font(.system(size: 11, weight: .medium))
+                            Spacer()
+                            Text(String(format: "%.0f%%", state.blurIntensity * 100))
+                                .font(.system(size: 11, weight: .bold))
+                        }
+                        
+                        Slider(value: Binding(
+                            get: { state.blurIntensity },
+                            set: { val in state.blurIntensity = val; state.notifyChanges() }
+                        ), in: 0.2...1.0, step: 0.05)
+                    }
                 }
                 .padding(12)
-                .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color(NSColor.controlBackgroundColor).opacity(0.5)))
-                
-                // 3D Skew Customizations
-                VStack(alignment: .leading, spacing: 10) {
+                .background(RoundedRectangle(cornerRadius: 10).fill(Color(NSColor.controlBackgroundColor).opacity(0.5)))
+            }
+            
+            // Tab 1: 3D Skew Options
+            if state.selectedTab == 1 {
+                VStack(alignment: .leading, spacing: 12) {
                     Toggle(isOn: Binding(
                         get: { state.isSkewEnabled },
                         set: { val in
@@ -179,7 +195,7 @@ struct ControlPanelView: View {
                         HStack {
                             Image(systemName: "perspective")
                                 .foregroundColor(.purple)
-                            Text("3D Perspective Skew Transform")
+                            Text("Enable 3D Perspective Skew")
                                 .font(.system(size: 13, weight: .medium))
                         }
                     }
@@ -187,31 +203,25 @@ struct ControlPanelView: View {
                     
                     if state.isSkewEnabled {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("3D Skew Transform Mode:")
+                            Text("3D Skew Mode:")
                                 .font(.system(size: 11, weight: .medium))
                             
                             Picker("", selection: Binding(
                                 get: { state.skewTransformMode },
-                                set: { val in
-                                    state.skewTransformMode = val
-                                    state.notifyAnimationStylesChanged()
-                                }
+                                set: { val in state.skewTransformMode = val; state.notifyChanges() }
                             )) {
-                                Text("3D Hinge Pitch").tag(0)
+                                Text("Hinge Pitch").tag(0)
                                 Text("Trapezoid Pinch").tag(1)
                                 Text("Depth Recede").tag(2)
                             }
                             .pickerStyle(.segmented)
                             
-                            Text("3D Skew Pivot Point:")
+                            Text("3D Pivot Point:")
                                 .font(.system(size: 11, weight: .medium))
                             
                             Picker("", selection: Binding(
                                 get: { state.skewPivotPoint },
-                                set: { val in
-                                    state.skewPivotPoint = val
-                                    state.notifyAnimationStylesChanged()
-                                }
+                                set: { val in state.skewPivotPoint = val; state.notifyChanges() }
                             )) {
                                 Text("Top Hinge").tag(0)
                                 Text("Center").tag(1)
@@ -219,30 +229,48 @@ struct ControlPanelView: View {
                             }
                             .pickerStyle(.segmented)
                             
-                            HStack {
-                                Text("3D Tilt Intensity:")
-                                    .font(.system(size: 11, weight: .medium))
-                                    .foregroundColor(.secondary)
-                                Spacer()
-                                Text(String(format: "%.1fx", state.skewIntensity))
-                                    .font(.system(size: 11, weight: .bold))
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack {
+                                    Text("Max 3D Tilt Angle:")
+                                        .font(.system(size: 11, weight: .medium))
+                                    Spacer()
+                                    Text(String(format: "%.0f°", state.skewAngleMax))
+                                        .font(.system(size: 11, weight: .bold))
+                                }
+                                
+                                Slider(value: Binding(
+                                    get: { state.skewAngleMax },
+                                    set: { val in state.skewAngleMax = val; state.notifyChanges() }
+                                ), in: 5...45, step: 1)
                             }
                             
-                            Slider(value: Binding(
-                                get: { state.skewIntensity },
-                                set: { val in
-                                    state.skewIntensity = val
-                                    state.onSkewSettingsChanged?(state.isSkewEnabled, val)
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack {
+                                    Text("3D Skew Overall Intensity:")
+                                        .font(.system(size: 11, weight: .medium))
+                                    Spacer()
+                                    Text(String(format: "%.1fx", state.skewIntensity))
+                                        .font(.system(size: 11, weight: .bold))
                                 }
-                            ), in: 0.3...2.0, step: 0.1)
+                                
+                                Slider(value: Binding(
+                                    get: { state.skewIntensity },
+                                    set: { val in
+                                        state.skewIntensity = val
+                                        state.onSkewSettingsChanged?(state.isSkewEnabled, val)
+                                    }
+                                ), in: 0.3...2.0, step: 0.1)
+                            }
                         }
                     }
                 }
                 .padding(12)
-                .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color(NSColor.controlBackgroundColor).opacity(0.5)))
-                
-                // Sensor & Manual Controls
-                VStack(spacing: 10) {
+                .background(RoundedRectangle(cornerRadius: 10).fill(Color(NSColor.controlBackgroundColor).opacity(0.5)))
+            }
+            
+            // Tab 2: Sensor & Thresholds
+            if state.selectedTab == 2 {
+                VStack(alignment: .leading, spacing: 12) {
                     Toggle(isOn: Binding(
                         get: { state.isHardwareEnabled },
                         set: { val in
@@ -262,50 +290,34 @@ struct ControlPanelView: View {
                     if !state.isHardwareEnabled {
                         VStack(alignment: .leading, spacing: 4) {
                             HStack {
-                                Text("Manual Test Angle:")
+                                Text("Manual Simulation Angle:")
                                     .font(.system(size: 11, weight: .medium))
-                                    .foregroundColor(.secondary)
                                 Spacer()
                                 Text(String(format: "%.0f°", state.manualAngle))
                                     .font(.system(size: 11, weight: .bold))
                             }
                             
-                            HStack {
-                                Image(systemName: "macwindow.on.rectangle")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                
-                                Slider(value: Binding(
-                                    get: { state.manualAngle },
-                                    set: { val in
-                                        state.manualAngle = val
-                                        state.onManualAngleChanged?(val)
-                                    }
-                                ), in: 0...135)
-                                
-                                Image(systemName: "laptopcomputer")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
+                            Slider(value: Binding(
+                                get: { state.manualAngle },
+                                set: { val in
+                                    state.manualAngle = val
+                                    state.onManualAngleChanged?(val)
+                                }
+                            ), in: 0...135)
                         }
                     }
-                }
-                .padding(12)
-                .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color(NSColor.controlBackgroundColor).opacity(0.5)))
-                
-                // Sensitivity Settings
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("SENSITIVITY THRESHOLDS")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(.secondary)
                     
-                    VStack(spacing: 6) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("ANGLE THRESHOLDS")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.secondary)
+                        
                         HStack {
                             Text("Blur & Skew Starts Below:")
-                                .font(.system(size: 12))
+                                .font(.system(size: 11))
                             Spacer()
                             Text(String(format: "%.0f°", state.blurStartAngle))
-                                .font(.system(size: 12, weight: .semibold))
+                                .font(.system(size: 11, weight: .semibold))
                         }
                         
                         Slider(value: Binding(
@@ -318,10 +330,10 @@ struct ControlPanelView: View {
                         
                         HStack {
                             Text("Blur & Skew 100% At:")
-                                .font(.system(size: 12))
+                                .font(.system(size: 11))
                             Spacer()
                             Text(String(format: "%.0f°", state.blurFullAngle))
-                                .font(.system(size: 12, weight: .semibold))
+                                .font(.system(size: 11, weight: .semibold))
                         }
                         
                         Slider(value: Binding(
@@ -334,37 +346,38 @@ struct ControlPanelView: View {
                     }
                 }
                 .padding(12)
-                .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color(NSColor.controlBackgroundColor).opacity(0.5)))
-                
-                // Bottom Action Bar
-                HStack {
-                    Button(action: {
-                        PermissionsManager.openSystemSettings()
-                    }) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "gearshape")
-                            Text("System Settings")
-                        }
-                        .font(.system(size: 11, weight: .medium))
-                    }
-                    .buttonStyle(.borderless)
-
-                    Spacer()
-                    
-                    Button(action: {
-                        NSApp.terminate(nil)
-                    }) {
-                        Text("Quit App")
-                            .font(.system(size: 11))
-                            .foregroundColor(.red)
-                    }
-                    .buttonStyle(.borderless)
-                }
-                .padding(.top, 2)
+                .background(RoundedRectangle(cornerRadius: 10).fill(Color(NSColor.controlBackgroundColor).opacity(0.5)))
             }
-            .padding(16)
+            
+            Spacer()
+            
+            // Bottom Action Bar
+            HStack {
+                Button(action: {
+                    PermissionsManager.openSystemSettings()
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "gearshape")
+                        Text("System Settings")
+                    }
+                    .font(.system(size: 11, weight: .medium))
+                }
+                .buttonStyle(.borderless)
+
+                Spacer()
+                
+                Button(action: {
+                    NSApp.terminate(nil)
+                }) {
+                    Text("Quit App")
+                        .font(.system(size: 11))
+                        .foregroundColor(.red)
+                }
+                .buttonStyle(.borderless)
+            }
         }
-        .frame(width: 380, height: 560)
+        .padding(14)
+        .frame(width: 380, height: 480)
     }
 }
 
@@ -391,13 +404,13 @@ public class ControlPanelWindow: NSWindow {
         set { state.onSkewSettingsChanged = newValue }
     }
     
-    public var onAnimationStylesChanged: ((Int, Int, Int, Int) -> Void)? {
+    public var onAnimationStylesChanged: (() -> Void)? {
         get { state.onAnimationStylesChanged }
         set { state.onAnimationStylesChanged = newValue }
     }
     
     public init() {
-        let panelRect = NSRect(x: 0, y: 0, width: 380, height: 560)
+        let panelRect = NSRect(x: 0, y: 0, width: 380, height: 480)
         super.init(
             contentRect: panelRect,
             styleMask: [.titled, .closable, .fullSizeContentView],
@@ -443,22 +456,12 @@ public class ControlPanelWindow: NSWindow {
         }
     }
     
-    public var blurStartAngle: Double {
-        return state.blurStartAngle
-    }
-    
-    public var blurFullAngle: Double {
-        return state.blurFullAngle
-    }
-    
-    public var isSkewEnabled: Bool {
-        return state.isSkewEnabled
-    }
-    
-    public var skewIntensity: Double {
-        return state.skewIntensity
-    }
-    
+    public var blurStartAngle: Double { return state.blurStartAngle }
+    public var blurFullAngle: Double { return state.blurFullAngle }
+    public var isSkewEnabled: Bool { return state.isSkewEnabled }
+    public var skewIntensity: Double { return state.skewIntensity }
+    public var skewAngleMax: Double { return state.skewAngleMax }
+    public var blurIntensity: Double { return state.blurIntensity }
     public var blurMaterialStyle: Int { return state.blurMaterialStyle }
     public var blurDirection: Int { return state.blurDirection }
     public var skewTransformMode: Int { return state.skewTransformMode }
