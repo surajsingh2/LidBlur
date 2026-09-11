@@ -22,13 +22,22 @@
 
 ## 📦 Direct Download & Installation
 
-### Option 1: Download `.dmg` Installer
-1. Download the direct installer: **[LidAngleBlur.dmg](https://github.com/surajsingh2/LidBlur/releases)** or **[LidAngleBlur.dmg (Direct)](LidAngleBlur.dmg)**.
-2. Open `LidAngleBlur.dmg` and drag **Lid Angle Blur.app** into your **Applications** folder.
+### ⬇️ Download Installer
+Click to download the `.dmg` installer directly:
+
+👉 **[Download LidAngleBlur.dmg (Direct Download)](https://github.com/surajsingh2/LidBlur/raw/master/LidAngleBlur.dmg)**
+
+---
+
+### 💻 Installation Steps
+1. Open the downloaded `LidAngleBlur.dmg` file.
+2. Drag **Lid Angle Blur.app** into your **Applications** folder.
 3. Launch **Lid Angle Blur** from Applications or Spotlight.
 
-### Option 2: Run as a Background LaunchAgent Service (Auto-Start at Boot)
-To run Lid Angle Blur in the background whenever you log into your Mac:
+---
+
+### 🚀 Run as a Background Service (Auto-Start at Boot)
+To run Lid Angle Blur silently in the background whenever you log into your Mac:
 
 ```bash
 # Register & start background LaunchAgent service
