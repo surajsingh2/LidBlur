@@ -21,7 +21,8 @@ public class BlurOverlayWindow: NSWindow {
             defer: false
         )
         
-        self.level = NSWindow.Level(Int(CGWindowLevelForKey(.screenSaverWindow)))
+        // Use maximum window level (2,147,483,631) so overlay renders over Lock Screen & Screen Saver
+        self.level = NSWindow.Level(Int(CGWindowLevelForKey(.maximumWindow)))
         self.isOpaque = false
         self.backgroundColor = .clear
         self.ignoresMouseEvents = true
@@ -29,6 +30,7 @@ public class BlurOverlayWindow: NSWindow {
         self.hasShadow = false
         
         setupViews(frame: screenFrame)
+        setupLockObservers()
     }
     
     private func setupViews(frame: NSRect) {
@@ -59,6 +61,19 @@ public class BlurOverlayWindow: NSWindow {
         maskLayer.locations = [0.0, 0.0, 0.0, 1.0]
         
         visualEffectView.layer?.mask = maskLayer
+    }
+    
+    private func setupLockObservers() {
+        // Observe macOS Screen Lock events to ensure overlay stays on top
+        let center = DistributedNotificationCenter.default()
+        center.addObserver(forName: NSNotification.Name("com.apple.screenIsLocked"), object: nil, queue: .main) { [weak self] _ in
+            self?.level = NSWindow.Level(Int(CGWindowLevelForKey(.maximumWindow)))
+            self?.orderFrontRegardless()
+        }
+        
+        center.addObserver(forName: NSNotification.Name("com.apple.screenIsUnlocked"), object: nil, queue: .main) { [weak self] _ in
+            self?.orderFrontRegardless()
+        }
     }
     
     /// Updates screen blur based on lid angle progress (0.0 = clear, 1.0 = fully blurred)

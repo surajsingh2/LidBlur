@@ -10,9 +10,9 @@ public class ControlPanelState: ObservableObject {
     @Published public var isHardwareEnabled: Bool = true
     @Published public var manualAngle: Double = 112.0
     
-    // Angle Thresholds
-    @Published public var blurStartAngle: Double = 115.0
-    @Published public var blurFullAngle: Double = 30.0
+    // Initial Default Angle Thresholds (80° start, 20° full)
+    @Published public var blurStartAngle: Double = 80.0
+    @Published public var blurFullAngle: Double = 20.0
     
     // Blur Options
     @Published public var blurMaterialStyle: Int = 0
@@ -202,6 +202,48 @@ struct ControlPanelView: View {
                         ), in: 0...135)
                     }
                 }
+                
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("HARDWARE LEAN THRESHOLDS")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.secondary)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("Blur Starts Below:")
+                                .font(.system(size: 12))
+                            Spacer()
+                            Text(String(format: "%.0f°", state.blurStartAngle))
+                                .font(.system(size: 12, weight: .bold))
+                        }
+                        
+                        Slider(value: Binding(
+                            get: { state.blurStartAngle },
+                            set: { val in
+                                state.blurStartAngle = val
+                                state.onThresholdsChanged?(val, state.blurFullAngle)
+                            }
+                        ), in: 30...130, step: 1)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("Blur 100% At:")
+                                .font(.system(size: 12))
+                            Spacer()
+                            Text(String(format: "%.0f°", state.blurFullAngle))
+                                .font(.system(size: 12, weight: .bold))
+                        }
+                        
+                        Slider(value: Binding(
+                            get: { state.blurFullAngle },
+                            set: { val in
+                                state.blurFullAngle = val
+                                state.onThresholdsChanged?(state.blurStartAngle, val)
+                            }
+                        ), in: 0...60, step: 1)
+                    }
+                }
             }
             .padding(12)
             .background(RoundedRectangle(cornerRadius: 10).fill(Color(NSColor.controlBackgroundColor).opacity(0.5)))
@@ -235,7 +277,7 @@ struct ControlPanelView: View {
             .padding(.horizontal, 4)
         }
         .padding(16)
-        .frame(width: 420, height: 450)
+        .frame(width: 420, height: 480)
     }
 }
 
@@ -263,7 +305,7 @@ public class ControlPanelWindow: NSWindow {
     }
     
     public init() {
-        let panelRect = NSRect(x: 0, y: 0, width: 420, height: 450)
+        let panelRect = NSRect(x: 0, y: 0, width: 420, height: 480)
         super.init(
             contentRect: panelRect,
             styleMask: [.titled, .closable, .fullSizeContentView],

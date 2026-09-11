@@ -6,8 +6,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     
     private var isHardwareEnabled = true
-    private var blurStartAngle = 115.0 // Starts blurring as soon as screen tilts down from ~112°
-    private var blurFullAngle = 30.0   // 100% blur at 30°
+    private var blurStartAngle = 80.0 // Initial default blur start angle (80°)
+    private var blurFullAngle = 20.0  // Initial default full blur angle (20°)
     private var currentAngle = 112.0
     
     func applicationDidFinishLaunching(_ notification: Notification) {
