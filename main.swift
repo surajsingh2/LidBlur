@@ -6,6 +6,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     
     private var isHardwareEnabled = true
+    private var isSkewEnabled = true
+    private var skewIntensity = 1.0
     private var blurStartAngle = 90.0
     private var blurFullAngle = 20.0
     private var currentAngle = 112.0
@@ -24,7 +26,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         controlPanel.center()
         controlPanel.makeKeyAndOrderFront(nil)
         
-        // Setup Menu Bar Status Item (keeps app active in background)
+        // Setup Menu Bar Status Item
         setupStatusBar()
         
         // Control panel callbacks
@@ -33,6 +35,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             if !enabled {
                 self?.recalculateProgress()
             }
+        }
+        
+        controlPanel.onSkewSettingsChanged = { [weak self] enabled, intensity in
+            self?.isSkewEnabled = enabled
+            self?.skewIntensity = intensity
+            self?.recalculateProgress()
         }
         
         controlPanel.onManualAngleChanged = { [weak self] angle in
@@ -68,7 +76,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let progress = (blurStartAngle - currentAngle) / span
         let clampedProgress = CGFloat(max(0.0, min(1.0, progress)))
         
-        overlayWindow.setBlurProgress(clampedProgress)
+        overlayWindow.setBlurAndSkewProgress(clampedProgress, skewIntensity: CGFloat(skewIntensity), isSkewEnabled: isSkewEnabled)
         controlPanel.updateTelemetry(angle: currentAngle, progress: Double(clampedProgress))
     }
     
@@ -102,7 +110,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        // Return false so app keeps running in background even if control panel is closed!
         return false
     }
 }
@@ -111,6 +118,5 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 let app = NSApplication.shared
 let delegate = AppDelegate()
 app.delegate = delegate
-// Set as background/accessory agent (runs in menu bar & background)
 app.setActivationPolicy(.accessory)
 app.run()

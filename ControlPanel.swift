@@ -7,21 +7,24 @@ public class ControlPanelState: ObservableObject {
     @Published public var sensorStatus: String = "Connecting..."
     @Published public var isHardwareConnected: Bool = true
     @Published public var isHardwareEnabled: Bool = true
+    @Published public var isSkewEnabled: Bool = true
+    @Published public var skewIntensity: Double = 1.0
     @Published public var manualAngle: Double = 112.0
     @Published public var blurStartAngle: Double = 90.0
-    @Published public var blurFullAngle: Double = 20.0
+    @Published var blurFullAngle: Double = 20.0
     @Published public var isPermissionGranted: Bool = true
     
     public var onHardwareToggleChanged: ((Bool) -> Void)?
     public var onManualAngleChanged: ((Double) -> Void)?
     public var onThresholdsChanged: ((Double, Double) -> Void)?
+    public var onSkewSettingsChanged: ((Bool, Double) -> Void)?
 }
 
 struct ControlPanelView: View {
     @ObservedObject var state: ControlPanelState
     
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 14) {
             // Header
             HStack(spacing: 12) {
                 ZStack {
@@ -37,7 +40,7 @@ struct ControlPanelView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Lid Angle Blur")
                         .font(.system(size: 16, weight: .bold))
-                    Text("Screen Lean Privacy & Animation")
+                    Text("Screen Lean Privacy & 3D Skew")
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
                 }
@@ -60,26 +63,26 @@ struct ControlPanelView: View {
             Divider()
             
             // Real-Time Telemetry Card
-            VStack(spacing: 12) {
+            VStack(spacing: 10) {
                 HStack {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 2) {
                         Text("LIVE HARDWARE ANGLE")
                             .font(.system(size: 9, weight: .bold))
                             .foregroundColor(.secondary)
                         
                         HStack(alignment: .firstTextBaseline, spacing: 2) {
                             Text(String(format: "%.1f", state.currentAngle))
-                                .font(.system(size: 32, weight: .heavy, design: .rounded))
+                                .font(.system(size: 30, weight: .heavy, design: .rounded))
                             Text("°")
-                                .font(.system(size: 20, weight: .bold))
+                                .font(.system(size: 18, weight: .bold))
                                 .foregroundColor(.secondary)
                         }
                     }
                     
                     Spacer()
                     
-                    VStack(alignment: .trailing, spacing: 4) {
-                        Text("BLUR COVERAGE")
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text("BLUR & 3D SKEW")
                             .font(.system(size: 9, weight: .bold))
                             .foregroundColor(.secondary)
                         
@@ -94,22 +97,59 @@ struct ControlPanelView: View {
                     ZStack(alignment: .leading) {
                         Capsule()
                             .fill(Color.primary.opacity(0.1))
-                            .frame(height: 8)
+                            .frame(height: 7)
                         
                         Capsule()
                             .fill(LinearGradient(gradient: Gradient(colors: [.blue, .cyan]), startPoint: .leading, endPoint: .trailing))
-                            .frame(width: geo.size.width * CGFloat(state.blurProgress), height: 8)
+                            .frame(width: geo.size.width * CGFloat(state.blurProgress), height: 7)
                             .animation(.easeOut(duration: 0.15), value: state.blurProgress)
                     }
                 }
-                .frame(height: 8)
+                .frame(height: 7)
             }
-            .padding(14)
+            .padding(12)
             .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color(NSColor.controlBackgroundColor).opacity(0.7)))
             .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Color.primary.opacity(0.08), lineWidth: 1))
             
-            // Mode & Simulation Controls
+            // 3D Perspective Skew & Sensor Toggles
             VStack(spacing: 10) {
+                Toggle(isOn: Binding(
+                    get: { state.isSkewEnabled },
+                    set: { val in
+                        state.isSkewEnabled = val
+                        state.onSkewSettingsChanged?(val, state.skewIntensity)
+                    }
+                )) {
+                    HStack {
+                        Image(systemName: "perspective")
+                            .foregroundColor(.purple)
+                        Text("3D Perspective Skew Animation")
+                            .font(.system(size: 13, weight: .medium))
+                    }
+                }
+                .toggleStyle(SwitchToggleStyle(tint: .purple))
+                
+                if state.isSkewEnabled {
+                    HStack {
+                        Text("3D Tilt Intensity:")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Text(String(format: "%.1fx", state.skewIntensity))
+                            .font(.system(size: 11, weight: .bold))
+                    }
+                    
+                    Slider(value: Binding(
+                        get: { state.skewIntensity },
+                        set: { val in
+                            state.skewIntensity = val
+                            state.onSkewSettingsChanged?(state.isSkewEnabled, val)
+                        }
+                    ), in: 0.3...2.0, step: 0.1)
+                }
+                
+                Divider()
+                
                 Toggle(isOn: Binding(
                     get: { state.isHardwareEnabled },
                     set: { val in
@@ -155,21 +195,20 @@ struct ControlPanelView: View {
                                 .foregroundColor(.secondary)
                         }
                     }
-                    .padding(.top, 4)
                 }
             }
             .padding(12)
             .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color(NSColor.controlBackgroundColor).opacity(0.5)))
             
             // Sensitivity Settings
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 8) {
                 Text("SENSITIVITY THRESHOLDS")
                     .font(.system(size: 10, weight: .bold))
                     .foregroundColor(.secondary)
                 
-                VStack(spacing: 8) {
+                VStack(spacing: 6) {
                     HStack {
-                        Text("Blur Starts Below:")
+                        Text("Blur & Skew Starts Below:")
                             .font(.system(size: 12))
                         Spacer()
                         Text(String(format: "%.0f°", state.blurStartAngle))
@@ -185,7 +224,7 @@ struct ControlPanelView: View {
                     ), in: 40...120, step: 1)
                     
                     HStack {
-                        Text("Blur 100% At:")
+                        Text("Blur & Skew 100% At:")
                             .font(.system(size: 12))
                         Spacer()
                         Text(String(format: "%.0f°", state.blurFullAngle))
@@ -228,9 +267,9 @@ struct ControlPanelView: View {
                 }
                 .buttonStyle(.borderless)
             }
-            .padding(.top, 4)
+            .padding(.top, 2)
         }
-        .padding(18)
+        .padding(16)
         .frame(width: 360)
     }
 }
@@ -253,8 +292,13 @@ public class ControlPanelWindow: NSWindow {
         set { state.onThresholdsChanged = newValue }
     }
     
+    public var onSkewSettingsChanged: ((Bool, Double) -> Void)? {
+        get { state.onSkewSettingsChanged }
+        set { state.onSkewSettingsChanged = newValue }
+    }
+    
     public init() {
-        let panelRect = NSRect(x: 0, y: 0, width: 360, height: 480)
+        let panelRect = NSRect(x: 0, y: 0, width: 360, height: 530)
         super.init(
             contentRect: panelRect,
             styleMask: [.titled, .closable, .fullSizeContentView],
@@ -306,5 +350,13 @@ public class ControlPanelWindow: NSWindow {
     
     public var blurFullAngle: Double {
         return state.blurFullAngle
+    }
+    
+    public var isSkewEnabled: Bool {
+        return state.isSkewEnabled
+    }
+    
+    public var skewIntensity: Double {
+        return state.skewIntensity
     }
 }
